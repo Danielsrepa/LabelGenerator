@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import JsBarcode from 'jsbarcode';
+import JSZip from 'jszip';
 import { LabelData, AppSettings, LayoutConfig } from '../types';
 
 // Helper to load image for PDF
@@ -25,29 +26,14 @@ const generateBarcodeBase64 = (text: string): string => {
   return canvas.toDataURL("image/png");
 };
 
-export const generatePDF = async (labels: LabelData[], settings: AppSettings, layout: LayoutConfig) => {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'pt',
-    format: [layout.pageWidth, layout.pageHeight]
-  });
-
-  // Load Logos if available
-  let leftLogoImg: HTMLImageElement | null = null;
-  let rightLogoImg: HTMLImageElement | null = null;
-
-  try {
-    if (settings.logoLeft) leftLogoImg = await loadImage(settings.logoLeft);
-    if (settings.logoRight) rightLogoImg = await loadImage(settings.logoRight);
-  } catch (e) {
-    console.warn("Could not load logo images", e);
-  }
-
-  for (let i = 0; i < labels.length; i++) {
-    const label = labels[i];
-    if (i > 0) doc.addPage([layout.pageWidth, layout.pageHeight], 'portrait');
-
-    // --- LOGOS ---
+// Helper to render a single label to a doc
+const renderLabelToDoc = (
+  doc: jsPDF, 
+  label: LabelData, 
+  layout: LayoutConfig, 
+  leftLogoImg: HTMLImageElement | null, 
+  rightLogoImg: HTMLImageElement | null
+) => {
     // Left Logo
     if (leftLogoImg) {
       const ratio = layout.logoHeight / leftLogoImg.height;
@@ -66,7 +52,6 @@ export const generatePDF = async (labels: LabelData[], settings: AppSettings, la
     if (rightLogoImg) {
       const ratio2 = layout.logoHeight / rightLogoImg.height;
       rightLogoW = rightLogoImg.width * ratio2;
-      // Position: PageWidth - Margin - LogoWidth (Left edge of logo)
       doc.addImage(rightLogoImg, 'PNG', layout.pageWidth - rightLogoW - layout.logoMargin, layout.logoTopY, rightLogoW, layout.logoHeight);
     } else {
         doc.setFillColor(200, 200, 200);
@@ -76,48 +61,43 @@ export const generatePDF = async (labels: LabelData[], settings: AppSettings, la
         doc.text("Logo R", layout.pageWidth - 40, layout.logoTopY + 25);
     }
 
-    // --- EMAIL ---
+    // Email
     doc.setFont("Helvetica", "normal");
     doc.setFontSize(layout.emailFontSize);
     doc.setTextColor(0, 0, 0);
-    // Align Right to match Preview logic (right: margin)
-    // Anchor X = PageWidth - Margin
     doc.text("order@repamarket.eu", layout.pageWidth - layout.logoMargin, layout.emailTopY, { align: 'right', baseline: 'top' });
 
-
-    // --- TITLE ---
+    // Title
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(layout.titleFontSize);
     doc.text(label.Title, layout.titleLeftMargin, layout.titleTopY, { baseline: 'top' });
 
-    // --- COLOR LINE ---
+    // Color Line
     if (label.ColorLine) {
         doc.setFont("Helvetica", "normal");
         doc.setFontSize(layout.colorLineFontSize);
         doc.text(label.ColorLine, layout.colorLineLeftMargin, layout.colorLineTopY, { baseline: 'top' });
     }
 
-    // --- BARCODE ---
+    // Barcode
     if (label.BarcodeText) {
         const barcodeBase64 = generateBarcodeBase64(label.BarcodeText);
         const bx = (layout.pageWidth - layout.barcodeWidth) / 2;
-        
         doc.addImage(barcodeBase64, 'PNG', bx, layout.barcodeTopY, layout.barcodeWidth, layout.barcodeHeight);
         
-        // Text under barcode
         doc.setFont("Helvetica", "normal");
         doc.setFontSize(layout.barcodeTextFontSize);
         doc.text(label.BarcodeText, layout.pageWidth / 2, layout.barcodeTopY + layout.barcodeHeight + 2, { align: 'center', baseline: 'top' });
     }
 
-    // --- MODEL ---
+    // Model
     if (label.Model) {
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(layout.modelFontSize);
         doc.text(label.Model, layout.modelLeftMargin, layout.modelTopY, { baseline: 'top' });
     }
 
-    // --- SIZES ---
+    // Sizes
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(layout.sizeFontSize);
     
@@ -127,7 +107,57 @@ export const generatePDF = async (labels: LabelData[], settings: AppSettings, la
     if (label.SizeMM) {
         doc.text(label.SizeMM, layout.pageWidth - layout.sizeRightMargin, layout.sizeMmTopY, { align: 'right', baseline: 'top' });
     }
+};
+
+export const generatePDF = async (labels: LabelData[], settings: AppSettings, layout: LayoutConfig) => {
+  // Load Logos if available
+  let leftLogoImg: HTMLImageElement | null = null;
+  let rightLogoImg: HTMLImageElement | null = null;
+
+  try {
+    if (settings.logoLeft) leftLogoImg = await loadImage(settings.logoLeft);
+    if (settings.logoRight) rightLogoImg = await loadImage(settings.logoRight);
+  } catch (e) {
+    console.warn("Could not load logo images", e);
   }
 
-  doc.save("labels.pdf");
+  const filenameMap = new Map<string, number>();
+  const getFilename = (model: string) => {
+    const base = (model || 'Label').trim().replace(/[^a-z0-9\-_]/gi, '_');
+    const count = filenameMap.get(base) || 0;
+    filenameMap.set(base, count + 1);
+    return count === 0 ? `${base}.pdf` : `${base}_${count}.pdf`;
+  };
+
+  if (labels.length === 1) {
+      const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'pt',
+          format: [layout.pageWidth, layout.pageHeight]
+      });
+      const label = labels[0];
+      renderLabelToDoc(doc, label, layout, leftLogoImg, rightLogoImg);
+      doc.save(getFilename(label.Model));
+  } else {
+      const zip = new JSZip();
+      
+      for (const label of labels) {
+          const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'pt',
+            format: [layout.pageWidth, layout.pageHeight]
+          });
+          renderLabelToDoc(doc, label, layout, leftLogoImg, rightLogoImg);
+          const blob = doc.output('blob');
+          zip.file(getFilename(label.Model), blob);
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(content);
+      link.download = `labels_${Date.now()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  }
 };

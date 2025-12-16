@@ -28,6 +28,7 @@
     "jspdf": "https://esm.sh/jspdf@2.5.1",
     "xlsx": "https://esm.sh/xlsx@0.18.5",
     "jsbarcode": "https://esm.sh/jsbarcode@3.11.5",
+    "jszip": "https://esm.sh/jszip@3.10.1",
     "react": "https://esm.sh/react@18.2.0",
     "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
@@ -44,6 +45,7 @@
       import { createRoot } from 'react-dom/client';
       import { jsPDF } from 'jspdf';
       import JsBarcode from 'jsbarcode';
+      import JSZip from 'jszip';
       import * as XLSX from 'xlsx';
       import { FileSpreadsheet, Download, Trash2, Plus, Settings as SettingsIcon, Printer, X, Upload, RotateCcw, LayoutTemplate } from 'lucide-react';
 
@@ -154,13 +156,71 @@
         return canvas.toDataURL("image/png");
       };
 
-      const generatePDF = async (labels, settings, layout) => {
-        const doc = new jsPDF({
-          orientation: 'portrait',
-          unit: 'pt',
-          format: [layout.pageWidth, layout.pageHeight]
-        });
+      const renderLabelToDoc = (doc, label, layout, leftLogoImg, rightLogoImg) => {
+        // Logos
+        if (leftLogoImg) {
+          const ratio = layout.logoHeight / leftLogoImg.height;
+          const newW = leftLogoImg.width * ratio;
+          doc.addImage(leftLogoImg, 'PNG', layout.logoMargin, layout.logoTopY, newW, layout.logoHeight);
+        } else {
+          doc.setFillColor(200, 200, 200);
+          doc.rect(layout.logoMargin, layout.logoTopY, 45, layout.logoHeight, 'F');
+          doc.setFontSize(8);
+          doc.setTextColor(100);
+          doc.text("Logo L", layout.logoMargin + 5, layout.logoTopY + 25);
+        }
 
+        let rightLogoW = 45;
+        if (rightLogoImg) {
+          const ratio2 = layout.logoHeight / rightLogoImg.height;
+          rightLogoW = rightLogoImg.width * ratio2;
+          doc.addImage(rightLogoImg, 'PNG', layout.pageWidth - rightLogoW - layout.logoMargin, layout.logoTopY, rightLogoW, layout.logoHeight);
+        } else {
+          doc.setFillColor(200, 200, 200);
+          doc.rect(layout.pageWidth - 45 - layout.logoMargin, layout.logoTopY, 45, layout.logoHeight, 'F');
+          doc.setFontSize(8);
+          doc.setTextColor(100);
+          doc.text("Logo R", layout.pageWidth - 40, layout.logoTopY + 25);
+        }
+
+        doc.setFont("Helvetica", "normal");
+        doc.setFontSize(layout.emailFontSize);
+        doc.setTextColor(0, 0, 0);
+        doc.text("order@repamarket.eu", layout.pageWidth - layout.logoMargin, layout.emailTopY, { align: 'right', baseline: 'top' });
+
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(layout.titleFontSize);
+        doc.text(label.Title, layout.titleLeftMargin, layout.titleTopY, { baseline: 'top' });
+
+        if (label.ColorLine) {
+          doc.setFont("Helvetica", "normal");
+          doc.setFontSize(layout.colorLineFontSize);
+          doc.text(label.ColorLine, layout.colorLineLeftMargin, layout.colorLineTopY, { baseline: 'top' });
+        }
+
+        if (label.BarcodeText) {
+          const barcodeBase64 = generateBarcodeBase64(label.BarcodeText);
+          const bx = (layout.pageWidth - layout.barcodeWidth) / 2;
+          doc.addImage(barcodeBase64, 'PNG', bx, layout.barcodeTopY, layout.barcodeWidth, layout.barcodeHeight);
+          
+          doc.setFont("Helvetica", "normal");
+          doc.setFontSize(layout.barcodeTextFontSize);
+          doc.text(label.BarcodeText, layout.pageWidth / 2, layout.barcodeTopY + layout.barcodeHeight + 2, { align: 'center', baseline: 'top' });
+        }
+
+        if (label.Model) {
+          doc.setFont("Helvetica", "bold");
+          doc.setFontSize(layout.modelFontSize);
+          doc.text(label.Model, layout.modelLeftMargin, layout.modelTopY, { baseline: 'top' });
+        }
+        
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(layout.sizeFontSize);
+        if (label.SizeInch) doc.text(label.SizeInch, layout.pageWidth - layout.sizeRightMargin, layout.sizeInchTopY, { align: 'right', baseline: 'top' });
+        if (label.SizeMM) doc.text(label.SizeMM, layout.pageWidth - layout.sizeRightMargin, layout.sizeMmTopY, { align: 'right', baseline: 'top' });
+      };
+
+      const generatePDF = async (labels, settings, layout) => {
         let leftLogoImg = null;
         let rightLogoImg = null;
 
@@ -171,74 +231,43 @@
           console.warn("Could not load logo images", e);
         }
 
-        for (let i = 0; i < labels.length; i++) {
-          const label = labels[i];
-          if (i > 0) doc.addPage([layout.pageWidth, layout.pageHeight], 'portrait');
+        const filenameMap = new Map();
+        const getFilename = (model) => {
+          const base = (model || 'Label').trim().replace(/[^a-z0-9\-_]/gi, '_');
+          const count = filenameMap.get(base) || 0;
+          filenameMap.set(base, count + 1);
+          return count === 0 ? `${base}.pdf` : `${base}_${count}.pdf`;
+        };
 
-          // Logos
-          if (leftLogoImg) {
-            const ratio = layout.logoHeight / leftLogoImg.height;
-            const newW = leftLogoImg.width * ratio;
-            doc.addImage(leftLogoImg, 'PNG', layout.logoMargin, layout.logoTopY, newW, layout.logoHeight);
-          } else {
-            doc.setFillColor(200, 200, 200);
-            doc.rect(layout.logoMargin, layout.logoTopY, 45, layout.logoHeight, 'F');
-            doc.setFontSize(8);
-            doc.setTextColor(100);
-            doc.text("Logo L", layout.logoMargin + 5, layout.logoTopY + 25);
-          }
-
-          let rightLogoW = 45;
-          if (rightLogoImg) {
-            const ratio2 = layout.logoHeight / rightLogoImg.height;
-            rightLogoW = rightLogoImg.width * ratio2;
-            doc.addImage(rightLogoImg, 'PNG', layout.pageWidth - rightLogoW - layout.logoMargin, layout.logoTopY, rightLogoW, layout.logoHeight);
-          } else {
-            doc.setFillColor(200, 200, 200);
-            doc.rect(layout.pageWidth - 45 - layout.logoMargin, layout.logoTopY, 45, layout.logoHeight, 'F');
-            doc.setFontSize(8);
-            doc.setTextColor(100);
-            doc.text("Logo R", layout.pageWidth - 40, layout.logoTopY + 25);
-          }
-
-          doc.setFont("Helvetica", "normal");
-          doc.setFontSize(layout.emailFontSize);
-          doc.setTextColor(0, 0, 0);
-          // Align Right to match Preview logic
-          doc.text("order@repamarket.eu", layout.pageWidth - layout.logoMargin, layout.emailTopY, { align: 'right', baseline: 'top' });
-
-          doc.setFont("Helvetica", "bold");
-          doc.setFontSize(layout.titleFontSize);
-          doc.text(label.Title, layout.titleLeftMargin, layout.titleTopY, { baseline: 'top' });
-
-          if (label.ColorLine) {
-            doc.setFont("Helvetica", "normal");
-            doc.setFontSize(layout.colorLineFontSize);
-            doc.text(label.ColorLine, layout.colorLineLeftMargin, layout.colorLineTopY, { baseline: 'top' });
-          }
-
-          if (label.BarcodeText) {
-            const barcodeBase64 = generateBarcodeBase64(label.BarcodeText);
-            const bx = (layout.pageWidth - layout.barcodeWidth) / 2;
-            doc.addImage(barcodeBase64, 'PNG', bx, layout.barcodeTopY, layout.barcodeWidth, layout.barcodeHeight);
-            
-            doc.setFont("Helvetica", "normal");
-            doc.setFontSize(layout.barcodeTextFontSize);
-            doc.text(label.BarcodeText, layout.pageWidth / 2, layout.barcodeTopY + layout.barcodeHeight + 2, { align: 'center', baseline: 'top' });
-          }
-
-          if (label.Model) {
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(layout.modelFontSize);
-            doc.text(label.Model, layout.modelLeftMargin, layout.modelTopY, { baseline: 'top' });
-          }
-          
-          doc.setFont("Helvetica", "bold");
-          doc.setFontSize(layout.sizeFontSize);
-          if (label.SizeInch) doc.text(label.SizeInch, layout.pageWidth - layout.sizeRightMargin, layout.sizeInchTopY, { align: 'right', baseline: 'top' });
-          if (label.SizeMM) doc.text(label.SizeMM, layout.pageWidth - layout.sizeRightMargin, layout.sizeMmTopY, { align: 'right', baseline: 'top' });
+        if (labels.length === 1) {
+            const doc = new jsPDF({
+              orientation: 'portrait',
+              unit: 'pt',
+              format: [layout.pageWidth, layout.pageHeight]
+            });
+            const label = labels[0];
+            renderLabelToDoc(doc, label, layout, leftLogoImg, rightLogoImg);
+            doc.save(getFilename(label.Model));
+        } else {
+            const zip = new JSZip();
+            for (const label of labels) {
+                const doc = new jsPDF({
+                  orientation: 'portrait',
+                  unit: 'pt',
+                  format: [layout.pageWidth, layout.pageHeight]
+                });
+                renderLabelToDoc(doc, label, layout, leftLogoImg, rightLogoImg);
+                const blob = doc.output('blob');
+                zip.file(getFilename(label.Model), blob);
+            }
+            const content = await zip.generateAsync({ type: 'blob' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `labels_${Date.now()}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
-        doc.save("labels.pdf");
       };
 
       // --- COMPONENTS ---
