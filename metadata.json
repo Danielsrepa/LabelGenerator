@@ -1,0 +1,5 @@
+{
+  "name": "Repa Label Generator",
+  "description": "A web-based tool to generate PDF product labels from Excel data or manual input, replicating specific Python ReportLab logic.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Repa Label Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Babel Standalone for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      body { font-family: 'Inter', sans-serif; }
+      @media print {
+        .no-print { display: none; }
+      }
+      @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+      }
+      .animate-slide-in-right {
+          animation: slideInRight 0.3s ease-out forwards;
+      }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@0.292.0",
+    "jspdf": "https://esm.sh/jspdf@2.5.1",
+    "xlsx": "https://esm.sh/xlsx@0.18.5",
+    "jsbarcode": "https://esm.sh/jsbarcode@3.11.5",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
+  </head>
+  <body class="bg-gray-50 text-gray-900">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+      import React, { useState, useEffect, useRef } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { jsPDF } from 'jspdf';
+      import JsBarcode from 'jsbarcode';
+      import * as XLSX from 'xlsx';
+      import { FileSpreadsheet, Download, Trash2, Plus, Settings as SettingsIcon, Printer, X, Upload, RotateCcw, LayoutTemplate } from 'lucide-react';
+
+      // --- CONSTANTS & CONFIG ---
+      
+      const DEFAULT_LAYOUT = {
+        pageWidth: 255,
+        pageHeight: 255,
+        
+        logoTopY: 15,
+        logoHeight: 45,
+        logoMargin: 15,
+
+        emailTopY: 70, 
+        emailFontSize: 10,
+
+        titleTopY: 80, 
+        titleFontSize: 16,
+        titleLeftMargin: 15,
+
+        colorLineTopY: 105, 
+        colorLineFontSize: 12,
+        colorLineLeftMargin: 15,
+
+        barcodeTopY: 142,
+        barcodeHeight: 55,
+        barcodeWidth: 150,
+        barcodeTextFontSize: 7,
+
+        modelTopY: 215, 
+        modelFontSize: 24,
+        modelLeftMargin: 15,
+
+        sizeInchTopY: 210, 
+        sizeMmTopY: 225,   
+        sizeFontSize: 12,
+        sizeRightMargin: 15
+      };
+
+      // Base64 SVGs for Default Logos
+      const LOGO_LEFT_DEFAULT = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iYmxhY2siLz48dGV4dCB4PSIxMCIgeT0iNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IndoaXRlIj5NQURFIElOPC90ZXh0Pjx0ZXh0IHg9IjEwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IndoaXRlIj5FVVJPUEU8L3RleHQ+PGcgZmlsbD0id2hpdGUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIyMCwgNzUpIj48ZyB0cmFuc2Zvcm09InNjYWxlKDAuOSkiPjxwb2x5Z29uIHBvaW50cz0iMCwtMzUgMiwtMzAgOCwtMzAgMywtMjYgNSwtMjAgMCwtMjQgLTUsLTIwIC0zLC0yNiAtOCwtMzAgLTIsLTMwIi8+PHBvbHlnb24gcG9pbnRzPSIwLC0zNSAyLC0zMCA4LC0zMCAzLC0yNiA1LC0yMCAwLC0yNCAtNSwtMjAgLTMsLTI2IC04LC0zMCAtMiwtMzAiIHRyYW5zZm9ybT0icm90YXRlKDMwKSIvPjxwb2x5Z29uIHBvaW50cz0iMCwtMzUgMiwtMzAgOCwtMzAgMywtMjYgNSwtMjAgMCwtMjQgLTUsLTIwIC0zLC0yNiAtOCwtMzAgLTIsLTMwIiB0cmFuc2Zvcm09InJvdGF0ZSg2MCkiLz48cG9seWdvbiBwb2ludHM9IjAsLTM1IDIsLTMwIDgsLTMwIDMsLTI2IDUsLTIwIDAsLTI0IC01LC0yMCAtMywtMjYgLTgsLTMwIC0yLC0zMCIgdHJhbnNmb3JtPSJyb3RhdGUoOTApIi8+PHBvbHlnb24gcG9pbnRzPSIwLC0zNSAyLC0zMCA4LC0zMCAzLC0yNiA1LC0yMCAwLC0yNCAtNSwtMjAgLTMsLTI2IC04LC0zMCAtMiwtMzAiIHRyYW5zZm9ybT0icm90YXRlKDEyMCkiLz48cG9seWdvbiBwb2ludHM9IjAsLTM1IDIsLTMwIDgsLTMwIDMsLTI2IDUsLTIwIDAsLTI0IC01LC0yMCAtMywtMjYgLTgsLTMwIC0yLC0zMCIgdHJhbnNmb3JtPSJyb3RhdGUoMTUwKSIvPjxwb2x5Z29uIHBvaW50cz0iMCwtMzUgMiwtMzAgOCwtMzAgMywtMjYgNSwtMjAgMCwtMjQgLTUsLTIwIC0zLC0yNiAtOCwtMzAgLTIsLTMwIiB0cmFuc2Zvcm09InJvdGF0ZSgxODApIi8+PHBvbHlnb24gcG9pbnRzPSIwLC0zNSAyLC0zMCA4LC0zMCAzLC0yNiA1LC0yMCAwLC0yNCAtNSwtMjAgLTMsLTI2IC04LC0zMCAtMiwtMzAiIHRyYW5zZm9ybT0icm90YXRlKDIxMCkiLz48cG9seWdvbiBwb2ludHM9IjAsLTM1IDIsLTMwIDgsLTMwIDMsLTI2IDUsLTIwIDAsLTI0IC01LC0yMCAtMywtMjYgLTgsLTMwIC0yLC0zMCIgdHJhbnNmb3JtPSJyb3RhdGUoMjQwKSIvPjxwb2x5Z29uIHBvaW50cz0iMCwtMzUgMiwtMzAgOCwtMzAgMywtMjYgNSwtMjAgMCwtMjQgLTUsLTIwIC0zLC0yNiAtOCwtMzAgLTIsLTMwIiB0cmFuc2Zvcm09InJvdGF0ZSgyNzApIi8+PHBvbHlnb24gcG9pbnRzPSIwLC0zNSAyLC0zMCA4LC0zMCAzLC0yNiA1LC0yMCAwLC0yNCAtNSwtMjAgLTMsLTI2IC04LC0zMCAtMiwtMzAiIHRyYW5zZm9ybT0icm90YXRlKDMwMCkiLz48cG9seWdvbiBwb2ludHM9IjAsLTM1IDIsLTMwIDgsLTMwIDMsLTI2IDUsLTIwIDAsLTI0IC01LC0yMCAtMywtMjYgLTgsLTMwIC0yLC0zMCIgdHJhbnNmb3JtPSJyb3RhdGUoMzMwKSIvPjwvZz48L2c+PC9zdmc+";
+      
+      const LOGO_RIGHT_DEFAULT = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48dGV4dCB4PSIxMCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iODAiIGZpbGw9ImJsYWNrIj5SRVBBPC90ZXh0Pjx0ZXh0IHg9IjEwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iNDUiIGZpbGw9ImJsYWNrIiBsZXR0ZXItc3BhY2luZz0iNSI+TUFSS0VUPC90ZXh0Pjwvc3ZnPg==";
+
+      const initialLabel = {
+        id: '1',
+        Title: 'Example Product',
+        ColorLine: 'Premium Series',
+        Model: 'XY-2000',
+        SizeInch: '10"',
+        SizeMM: '254mm',
+        BarcodeText: '123456789'
+      };
+
+      // --- SERVICES ---
+
+      // Excel Service
+      const parseExcelFile = async (file) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = e.target?.result;
+              const workbook = XLSX.read(data, { type: 'binary' });
+              const sheetName = workbook.SheetNames[0];
+              const sheet = workbook.Sheets[sheetName];
+              const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+              const mappedData = jsonData.map((row, index) => ({
+                id: `excel-${index}-${Date.now()}`,
+                Title: row.Title ? String(row.Title).trim() : 'Unknown Product',
+                ColorLine: row.ColorLine ? String(row.ColorLine).trim() : '',
+                Model: row.Model ? String(row.Model).trim() : '',
+                SizeInch: row.SizeInch ? String(row.SizeInch).trim() : '',
+                SizeMM: row.SizeMM ? String(row.SizeMM).trim() : '',
+                BarcodeText: row.BarcodeText ? String(row.BarcodeText).trim() : '',
+              }));
+              resolve(mappedData);
+            } catch (error) {
+              reject(error);
+            }
+          };
+          reader.onerror = (error) => reject(error);
+          reader.readAsBinaryString(file);
+        });
+      };
+
+      // PDF Service
+      const loadImage = (url) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.src = url;
+          img.crossOrigin = "Anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = (err) => reject(err);
+        });
+      };
+
+      const generateBarcodeBase64 = (text) => {
+        const canvas = document.createElement("canvas");
+        JsBarcode(canvas, text, {
+          format: "CODE128",
+          displayValue: false,
+          margin: 0,
+          width: 2,
+          height: 100
+        });
+        return canvas.toDataURL("image/png");
+      };
+
+      const generatePDF = async (labels, settings, layout) => {
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'pt',
+          format: [layout.pageWidth, layout.pageHeight]
+        });
+
+        let leftLogoImg = null;
+        let rightLogoImg = null;
+
+        try {
+          if (settings.logoLeft) leftLogoImg = await loadImage(settings.logoLeft);
+          if (settings.logoRight) rightLogoImg = await loadImage(settings.logoRight);
+        } catch (e) {
+          console.warn("Could not load logo images", e);
+        }
+
+        for (let i = 0; i < labels.length; i++) {
+          const label = labels[i];
+          if (i > 0) doc.addPage([layout.pageWidth, layout.pageHeight], 'portrait');
+
+          // Logos
+          if (leftLogoImg) {
+            const ratio = layout.logoHeight / leftLogoImg.height;
+            const newW = leftLogoImg.width * ratio;
+            doc.addImage(leftLogoImg, 'PNG', layout.logoMargin, layout.logoTopY, newW, layout.logoHeight);
+          } else {
+            doc.setFillColor(200, 200, 200);
+            doc.rect(layout.logoMargin, layout.logoTopY, 45, layout.logoHeight, 'F');
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            doc.text("Logo L", layout.logoMargin + 5, layout.logoTopY + 25);
+          }
+
+          let rightLogoW = 45;
+          if (rightLogoImg) {
+            const ratio2 = layout.logoHeight / rightLogoImg.height;
+            rightLogoW = rightLogoImg.width * ratio2;
+            doc.addImage(rightLogoImg, 'PNG', layout.pageWidth - rightLogoW - layout.logoMargin, layout.logoTopY, rightLogoW, layout.logoHeight);
+          } else {
+            doc.setFillColor(200, 200, 200);
+            doc.rect(layout.pageWidth - 45 - layout.logoMargin, layout.logoTopY, 45, layout.logoHeight, 'F');
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            doc.text("Logo R", layout.pageWidth - 40, layout.logoTopY + 25);
+          }
+
+          doc.setFont("Helvetica", "normal");
+          doc.setFontSize(layout.emailFontSize);
+          doc.setTextColor(0, 0, 0);
+          // Align Right to match Preview logic
+          doc.text("order@repamarket.eu", layout.pageWidth - layout.logoMargin, layout.emailTopY, { align: 'right', baseline: 'top' });
+
+          doc.setFont("Helvetica", "bold");
+          doc.setFontSize(layout.titleFontSize);
+          doc.text(label.Title, layout.titleLeftMargin, layout.titleTopY, { baseline: 'top' });
+
+          if (label.ColorLine) {
+            doc.setFont("Helvetica", "normal");
+            doc.setFontSize(layout.colorLineFontSize);
+            doc.text(label.ColorLine, layout.colorLineLeftMargin, layout.colorLineTopY, { baseline: 'top' });
+          }
+
+          if (label.BarcodeText) {
+            const barcodeBase64 = generateBarcodeBase64(label.BarcodeText);
+            const bx = (layout.pageWidth - layout.barcodeWidth) / 2;
+            doc.addImage(barcodeBase64, 'PNG', bx, layout.barcodeTopY, layout.barcodeWidth, layout.barcodeHeight);
+            
+            doc.setFont("Helvetica", "normal");
+            doc.setFontSize(layout.barcodeTextFontSize);
+            doc.text(label.BarcodeText, layout.pageWidth / 2, layout.barcodeTopY + layout.barcodeHeight + 2, { align: 'center', baseline: 'top' });
+          }
+
+          if (label.Model) {
+            doc.setFont("Helvetica", "bold");
+            doc.setFontSize(layout.modelFontSize);
+            doc.text(label.Model, layout.modelLeftMargin, layout.modelTopY, { baseline: 'top' });
+          }
+          
+          doc.setFont("Helvetica", "bold");
+          doc.setFontSize(layout.sizeFontSize);
+          if (label.SizeInch) doc.text(label.SizeInch, layout.pageWidth - layout.sizeRightMargin, layout.sizeInchTopY, { align: 'right', baseline: 'top' });
+          if (label.SizeMM) doc.text(label.SizeMM, layout.pageWidth - layout.sizeRightMargin, layout.sizeMmTopY, { align: 'right', baseline: 'top' });
+        }
+        doc.save("labels.pdf");
+      };
+
+      // --- COMPONENTS ---
+
+      // LabelPreview
+      const LabelPreview = ({ data, settings, layout }) => {
+        const barcodeRef = useRef(null);
+
+        useEffect(() => {
+          if (data.BarcodeText && barcodeRef.current) {
+            try {
+              JsBarcode(barcodeRef.current, data.BarcodeText, {
+                format: "CODE128",
+                displayValue: false,
+                height: 50,
+                width: 2,
+                margin: 0,
+                background: 'transparent'
+              });
+            } catch (e) {
+              console.error("Invalid barcode", e);
+            }
+          }
+        }, [data.BarcodeText]);
+
+        const PREVIEW_SCALE = 1.5; 
+        const widthPx = layout.pageWidth * PREVIEW_SCALE;
+        const heightPx = layout.pageHeight * PREVIEW_SCALE;
+        const s = (val) => val * PREVIEW_SCALE;
+
+        const textStyle = {
+            fontFamily: 'Helvetica, Arial, sans-serif',
+            lineHeight: 1, 
+            position: 'absolute',
+        };
+        
+        return (
+          <div 
+            className="bg-white text-black shadow-lg relative overflow-hidden border border-gray-200 mx-auto box-border"
+            style={{ width: widthPx, height: heightPx }}
+          >
+              {/* Logos */}
+              <div 
+                style={{ 
+                  ...textStyle,
+                  top: s(layout.logoTopY), 
+                  left: s(layout.logoMargin), 
+                  height: s(layout.logoHeight),
+                  display: 'flex',
+                  alignItems: 'flex-start'
+                }}
+              >
+                 {settings.logoLeft ? (
+                    <img src={settings.logoLeft} alt="Made in Europe" className="h-full w-auto object-contain" />
+                 ) : (
+                    <div className="h-full w-24 bg-gray-200 flex items-center justify-center text-[10px] text-gray-500">Logo L</div>
+                 )}
+              </div>
+
+              <div 
+                style={{ 
+                  ...textStyle,
+                  top: s(layout.logoTopY), 
+                  right: s(layout.logoMargin), 
+                  height: s(layout.logoHeight),
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end'
+                }}
+              >
+                 {settings.logoRight ? (
+                    <img src={settings.logoRight} alt="Repa" className="h-full w-auto object-contain" />
+                 ) : (
+                    <div className="h-full w-12 bg-gray-200 flex items-center justify-center text-[10px] text-gray-500">Logo R</div>
+                 )}
+              </div>
+
+              <div
+                style={{
+                  ...textStyle,
+                  top: s(layout.emailTopY),
+                  right: s(layout.logoMargin),
+                  fontSize: s(layout.emailFontSize),
+                  textAlign: 'right'
+                }}
+              >
+                order@repamarket.eu
+              </div>
+
+              {/* Title */}
+              <div
+                className="truncate"
+                style={{
+                  ...textStyle,
+                  top: s(layout.titleTopY),
+                  left: s(layout.titleLeftMargin),
+                  width: widthPx - s(layout.titleLeftMargin * 2),
+                  fontSize: s(layout.titleFontSize),
+                  fontWeight: 'bold',
+                }}
+              >
+                {data.Title}
+              </div>
+
+              {/* ColorLine */}
+              {data.ColorLine && (
+                <div
+                  className="truncate"
+                  style={{
+                    ...textStyle,
+                    top: s(layout.colorLineTopY),
+                    left: s(layout.colorLineLeftMargin),
+                    width: widthPx - s(layout.colorLineLeftMargin * 2),
+                    fontSize: s(layout.colorLineFontSize),
+                  }}
+                >
+                  {data.ColorLine}
+                </div>
+              )}
+
+              {/* Barcode */}
+              {data.BarcodeText && (
+                <div
+                  style={{
+                    ...textStyle,
+                    top: s(layout.barcodeTopY),
+                    left: (widthPx - s(layout.barcodeWidth)) / 2,
+                    width: s(layout.barcodeWidth),
+                    height: s(layout.barcodeHeight),
+                    display: 'flex',
+                    justifyContent: 'center'
+                  }}
+                >
+                   <svg ref={barcodeRef} className="w-full h-full" preserveAspectRatio="none" />
+                </div>
+              )}
+              {data.BarcodeText && (
+                <div
+                   style={{
+                     ...textStyle,
+                     top: s(layout.barcodeTopY + layout.barcodeHeight + 2),
+                     width: '100%',
+                     textAlign: 'center',
+                     fontSize: s(layout.barcodeTextFontSize),
+                   }}
+                >
+                  {data.BarcodeText}
+                </div>
+              )}
+
+              {/* Footer */}
+              <div
+                style={{
+                  ...textStyle,
+                  top: s(layout.modelTopY),
+                  left: s(layout.modelLeftMargin),
+                  fontSize: s(layout.modelFontSize),
+                  fontWeight: 'bold'
+                }}
+              >
+                {data.Model}
+              </div>
+
+              <div 
+                className="pointer-events-none"
+                style={{
+                   ...textStyle,
+                   top: 0, 
+                   right: 0, 
+                   width: '100%',
+                   height: '100%',
+                   background: 'transparent'
+                }}
+              >
+                 {data.SizeInch && (
+                   <div
+                     style={{
+                       position: 'absolute',
+                       top: s(layout.sizeInchTopY),
+                       right: s(layout.sizeRightMargin),
+                       fontSize: s(layout.sizeFontSize),
+                       fontWeight: 'bold',
+                       lineHeight: 1
+                     }}
+                   >
+                     {data.SizeInch}
+                   </div>
+                 )}
+                 {data.SizeMM && (
+                   <div
+                     style={{
+                       position: 'absolute',
+                       top: s(layout.sizeMmTopY),
+                       right: s(layout.sizeRightMargin),
+                       fontSize: s(layout.sizeFontSize),
+                       fontWeight: 'bold',
+                       lineHeight: 1
+                     }}
+                   >
+                     {data.SizeMM}
+                   </div>
+                 )}
+              </div>
+          </div>
+        );
+      };
+
+      // SettingsModal (Logos)
+      const SettingsModal = ({ isOpen, onClose, settings, onUpdate }) => {
+        if (!isOpen) return null;
+
+        const handleImageUpload = (key) => (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              onUpdate({ ...settings, [key]: ev.target?.result });
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+              <div className="flex justify-between items-center p-4 border-b">
+                <h2 className="text-lg font-semibold">Label Configuration</h2>
+                <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-4 space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Left Logo (Made In Europe)</label>
+                  <div className="flex items-center space-x-4">
+                    <div className="h-16 w-16 bg-gray-100 border rounded flex items-center justify-center overflow-hidden">
+                      {settings.logoLeft ? <img src={settings.logoLeft} alt="Preview" className="h-full object-contain"/> : <span className="text-xs text-gray-400">Empty</span>}
+                    </div>
+                    <label className="cursor-pointer bg-blue-50 text-blue-600 px-4 py-2 rounded text-sm font-medium hover:bg-blue-100 transition flex items-center">
+                      <Upload size={16} className="mr-2" /> Replace
+                      <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload('logoLeft')} />
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Right Logo (Brand/Repa)</label>
+                  <div className="flex items-center space-x-4">
+                    <div className="h-16 w-16 bg-gray-100 border rounded flex items-center justify-center overflow-hidden">
+                      {settings.logoRight ? <img src={settings.logoRight} alt="Preview" className="h-full object-contain"/> : <span className="text-xs text-gray-400">Empty</span>}
+                    </div>
+                    <label className="cursor-pointer bg-blue-50 text-blue-600 px-4 py-2 rounded text-sm font-medium hover:bg-blue-100 transition flex items-center">
+                      <Upload size={16} className="mr-2" /> Replace
+                      <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload('logoRight')} />
+                    </label>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 bg-yellow-50 p-3 rounded">
+                  Note: Default logos are hardcoded. You can upload new ones to override them temporarily.
+                </div>
+              </div>
+              <div className="p-4 border-t bg-gray-50 flex justify-end">
+                <button onClick={onClose} className="bg-gray-800 text-white px-4 py-2 rounded text-sm font-medium hover:bg-gray-900">
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // LayoutSettings (New)
+      const LayoutSettings = ({ isOpen, onClose, config, onUpdate }) => {
+        if (!isOpen) return null;
+
+        const handleChange = (key, value) => {
+          const num = parseFloat(value);
+          if (!isNaN(num)) {
+            onUpdate({ ...config, [key]: num });
+          }
+        };
+
+        const handleReset = () => {
+          if (confirm("Reset all layout settings to default?")) {
+            onUpdate(DEFAULT_LAYOUT);
+          }
+        };
+
+        const InputGroup = ({ label, objKey }) => (
+          <div className="flex flex-col">
+            <label className="text-xs font-medium text-gray-500 mb-1">{label}</label>
+            <input 
+              type="number" 
+              value={config[objKey]} 
+              onChange={(e) => handleChange(objKey, e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
+            />
+          </div>
+        );
+
+        const Section = ({ title, children }) => (
+          <div className="mb-6">
+            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b pb-1 mb-3">{title}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {children}
+            </div>
+          </div>
+        );
+
+        return (
+          <div className="fixed inset-0 bg-black/50 flex justify-end z-50">
+            <div className="bg-white w-full max-w-lg h-full shadow-2xl flex flex-col animate-slide-in-right">
+              <div className="flex justify-between items-center p-4 border-b bg-gray-50">
+                <h2 className="text-lg font-semibold">Layout Editor</h2>
+                <div className="flex items-center space-x-2">
+                  <button onClick={handleReset} className="text-gray-500 hover:text-red-600 p-2 rounded" title="Reset Defaults">
+                      <RotateCcw size={18} />
+                  </button>
+                  <button onClick={onClose} className="text-gray-500 hover:bg-gray-200 p-2 rounded">
+                      <X size={20} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="overflow-y-auto flex-grow p-6">
+                  
+                  <Section title="Header (Logos)">
+                      <InputGroup label="Top Y" objKey="logoTopY" />
+                      <InputGroup label="Height" objKey="logoHeight" />
+                      <InputGroup label="Side Margins" objKey="logoMargin" />
+                      <InputGroup label="Email Top Y" objKey="emailTopY" />
+                      <InputGroup label="Email Font Size" objKey="emailFontSize" />
+                  </Section>
+
+                  <Section title="Product Info">
+                      <InputGroup label="Title Top Y" objKey="titleTopY" />
+                      <InputGroup label="Title Font Size" objKey="titleFontSize" />
+                      <InputGroup label="Title Left Margin" objKey="titleLeftMargin" />
+                      
+                      <InputGroup label="Color/Line Top Y" objKey="colorLineTopY" />
+                      <InputGroup label="Color/Line Size" objKey="colorLineFontSize" />
+                      <InputGroup label="Color Left Margin" objKey="colorLineLeftMargin" />
+                  </Section>
+
+                  <Section title="Barcode">
+                      <InputGroup label="Top Y" objKey="barcodeTopY" />
+                      <InputGroup label="Width" objKey="barcodeWidth" />
+                      <InputGroup label="Height" objKey="barcodeHeight" />
+                      <InputGroup label="Text Size" objKey="barcodeTextFontSize" />
+                  </Section>
+
+                  <Section title="Footer">
+                      <InputGroup label="Model Top Y" objKey="modelTopY" />
+                      <InputGroup label="Model Font Size" objKey="modelFontSize" />
+                      <InputGroup label="Model Left Margin" objKey="modelLeftMargin" />
+                      
+                      <InputGroup label="Size (Inch) Top Y" objKey="sizeInchTopY" />
+                      <InputGroup label="Size (MM) Top Y" objKey="sizeMmTopY" />
+                      <InputGroup label="Size Font Size" objKey="sizeFontSize" />
+                      <InputGroup label="Size Right Margin" objKey="sizeRightMargin" />
+                  </Section>
+
+                  <Section title="Page">
+                      <InputGroup label="Width (pt)" objKey="pageWidth" />
+                      <InputGroup label="Height (pt)" objKey="pageHeight" />
+                  </Section>
+              </div>
+              
+              <div className="p-4 border-t bg-gray-50 text-right">
+                   <button onClick={onClose} className="bg-indigo-600 text-white px-6 py-2 rounded shadow hover:bg-indigo-700 transition">
+                       Close
+                   </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // App Component
+      const App = () => {
+        const [labels, setLabels] = useState([initialLabel]);
+        const [selectedLabelId, setSelectedLabelId] = useState(initialLabel.id);
+        const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+        const [isLayoutOpen, setIsLayoutOpen] = useState(false);
+        const [settings, setSettings] = useState({
+          logoLeft: LOGO_LEFT_DEFAULT,
+          logoRight: LOGO_RIGHT_DEFAULT
+        });
+        const [layout, setLayout] = useState(DEFAULT_LAYOUT);
+
+        const activeLabel = labels.find(l => l.id === selectedLabelId) || labels[0];
+
+        const handleFileUpload = async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            try {
+              const parsedLabels = await parseExcelFile(file);
+              setLabels(parsedLabels);
+              if (parsedLabels.length > 0) setSelectedLabelId(parsedLabels[0].id);
+            } catch (error) {
+              alert("Error parsing Excel file. Ensure columns: Title, ColorLine, Model, SizeInch, SizeMM, BarcodeText.");
+              console.error(error);
+            }
+          }
+        };
+
+        const updateLabel = (id, field, value) => {
+          setLabels(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
+        };
+
+        const addNewLabel = () => {
+          const newId = Date.now().toString();
+          const newLabel = { ...initialLabel, id: newId, Title: 'New Item', Model: 'NEW-01' };
+          setLabels([...labels, newLabel]);
+          setSelectedLabelId(newId);
+        };
+
+        const removeLabel = (id) => {
+          const newLabels = labels.filter(l => l.id !== id);
+          setLabels(newLabels);
+          if (newLabels.length > 0) setSelectedLabelId(newLabels[0].id);
+        };
+
+        const handleDownloadPDF = () => {
+          generatePDF(labels, settings, layout);
+        };
+
+        return (
+          <div className="min-h-screen flex flex-col bg-slate-100">
+            <header className="bg-white border-b shadow-sm z-10 sticky top-0">
+              <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Printer className="text-indigo-600" />
+                  <h1 className="text-xl font-bold text-gray-900 tracking-tight">LabelGen <span className="text-gray-400 font-normal text-sm ml-2">Single File Edition</span></h1>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button 
+                    onClick={() => setIsLayoutOpen(true)}
+                    className="flex items-center space-x-2 bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-2 rounded-lg transition font-medium text-sm"
+                    title="Edit Layout"
+                  >
+                    <LayoutTemplate size={18} />
+                    <span className="hidden sm:inline">Edit Layout</span>
+                  </button>
+                  <button 
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition"
+                    title="Configure Logos"
+                  >
+                    <SettingsIcon size={20} />
+                  </button>
+                  <button 
+                    onClick={handleDownloadPDF}
+                    className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm"
+                  >
+                    <Download size={18} />
+                    <span>Generate PDF</span>
+                  </button>
+                </div>
+              </div>
+            </header>
+
+            <main className="flex-grow flex flex-col md:flex-row max-w-7xl mx-auto w-full p-4 gap-6">
+              
+              <div className="w-full md:w-1/3 flex flex-col gap-6">
+                  
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Data Source</h2>
+                      <div className="flex flex-col gap-3">
+                          <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-indigo-400 transition group">
+                              <div className="flex flex-col items-center">
+                                  <div className="flex items-center space-x-2 text-gray-600 group-hover:text-indigo-600">
+                                      <FileSpreadsheet size={20} />
+                                      <span className="font-medium">Upload Excel</span>
+                                  </div>
+                                  <span className="text-xs text-gray-400 mt-1">.xlsx or .xls</span>
+                              </div>
+                              <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleFileUpload} />
+                          </label>
+                          
+                          <button onClick={addNewLabel} className="flex items-center justify-center space-x-2 w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition">
+                              <Plus size={16} />
+                              <span>Add Manual Entry</span>
+                          </button>
+                      </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex-grow flex flex-col overflow-hidden h-[500px]">
+                      <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                          <span className="font-medium text-gray-700">{labels.length} Labels</span>
+                      </div>
+                      <div className="overflow-y-auto flex-grow">
+                          {labels.map((label) => (
+                              <div 
+                                  key={label.id}
+                                  onClick={() => setSelectedLabelId(label.id)}
+                                  className={`p-3 border-b cursor-pointer flex justify-between items-center hover:bg-gray-50 transition ${selectedLabelId === label.id ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : 'border-l-4 border-l-transparent'}`}
+                              >
+                                  <div className="overflow-hidden">
+                                      <div className="font-medium text-gray-900 truncate">{label.Model || 'No Model'}</div>
+                                      <div className="text-xs text-gray-500 truncate">{label.Title}</div>
+                                  </div>
+                                  <button 
+                                      onClick={(e) => { e.stopPropagation(); removeLabel(label.id); }}
+                                      className="p-1 text-gray-300 hover:text-red-500 transition"
+                                  >
+                                      <Trash2 size={16} />
+                                  </button>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              </div>
+
+              <div className="w-full md:w-2/3 flex flex-col gap-6">
+                  
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                      <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+                          Edit Details
+                          <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-mono">{activeLabel.id}</span>
+                      </h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="md:col-span-2">
+                              <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Product Title</label>
+                              <input 
+                                  type="text" 
+                                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                                  value={activeLabel.Title}
+                                  onChange={(e) => updateLabel(activeLabel.id, 'Title', e.target.value)}
+                              />
+                          </div>
+                          <div>
+                              <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Color / Line</label>
+                              <input 
+                                  type="text" 
+                                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                                  value={activeLabel.ColorLine || ''}
+                                  onChange={(e) => updateLabel(activeLabel.id, 'ColorLine', e.target.value)}
+                              />
+                          </div>
+                          <div>
+                              <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Model (Main ID)</label>
+                              <input 
+                                  type="text" 
+                                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                                  value={activeLabel.Model}
+                                  onChange={(e) => updateLabel(activeLabel.id, 'Model', e.target.value)}
+                              />
+                          </div>
+                          <div>
+                              <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Size Inch</label>
+                              <input 
+                                  type="text" 
+                                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                                  value={activeLabel.SizeInch || ''}
+                                  onChange={(e) => updateLabel(activeLabel.id, 'SizeInch', e.target.value)}
+                              />
+                          </div>
+                          <div>
+                              <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Size MM</label>
+                              <input 
+                                  type="text" 
+                                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                                  value={activeLabel.SizeMM || ''}
+                                  onChange={(e) => updateLabel(activeLabel.id, 'SizeMM', e.target.value)}
+                              />
+                          </div>
+                          <div className="md:col-span-2">
+                              <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Barcode (Code128)</label>
+                              <input 
+                                  type="text" 
+                                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none transition font-mono"
+                                  value={activeLabel.BarcodeText}
+                                  onChange={(e) => updateLabel(activeLabel.id, 'BarcodeText', e.target.value)}
+                              />
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="bg-gray-200 p-8 rounded-xl shadow-inner border border-gray-300 flex items-center justify-center relative min-h-[400px]">
+                      <div className="absolute top-4 left-4 text-xs font-bold text-gray-500 uppercase tracking-widest">Live Preview</div>
+                      <LabelPreview data={activeLabel} settings={settings} layout={layout} />
+                  </div>
+              </div>
+            </main>
+
+            <SettingsModal 
+              isOpen={isSettingsOpen} 
+              onClose={() => setIsSettingsOpen(false)} 
+              settings={settings}
+              onUpdate={setSettings}
+            />
+
+            <LayoutSettings
+              isOpen={isLayoutOpen}
+              onClose={() => setIsLayoutOpen(false)}
+              config={layout}
+              onUpdate={setLayout}
+            />
+          </div>
+        );
+      };
+
+      const rootElement = document.getElementById('root');
+      if (rootElement) {
+        const root = createRoot(rootElement);
+        root.render(<App />);
+      }
+    </script>
+  </body>
+</html>
