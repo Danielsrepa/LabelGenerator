@@ -43,8 +43,8 @@
     "react": "https://esm.sh/react@18.2.0",
     "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
     "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
@@ -114,10 +114,10 @@
         sizeRightMargin: 15
       };
 
-      // Default Logos (PNG Files)
-      // Removed "./" prefix to be safer with some file system resolutions
-      const LOGO_LEFT_DEFAULT = "logo-left.png";
-      const LOGO_RIGHT_DEFAULT = "logo-right.png";
+      // Base64 SVGs for Default Logos
+      const LOGO_LEFT_DEFAULT = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iYmxhY2siLz48dGV4dCB4PSIxMCIgeT0iNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IndoaXRlIj5NQURFIElOPC90ZXh0Pjx0ZXh0IHg9IjEwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IndoaXRlIj5FVVJPUEU8L3RleHQ+PGcgZmlsbD0id2hpdGUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIyMCwgNzUpIj48ZyB0cmFuc2Zvcm09InNjYWxlKDAuOSkiPjxwb2x5Z29uIHBvaW50cz0iMCwtMzUgMiwtMzAgOCwtMzAgMywtMjYgNSwtMjAgMCwtMjQgLTUsLTIwIC0zLC0yNiAtOCwtMzAgLTIsLTMwIi8+PHBvbHlnb24gcG9pbnRzPSIwLC0zNSAyLC0zMCA4LC0zMCAzLC0yNiA1LC0yMCAwLC0yNCAtNSwtMjAgLTMsLTI2IC04LC0zMCAtMiwtMzAiIHRyYW5zZm9ybT0icm90YXRlKDMwKSIvPjxwb2x5Z29uIHBvaW50cz0iMCwtMzUgMiwtMzAgOCwtMzAgMywtMjYgNSwtMjAgMCwtMjQgLTUsLTIwIC0zLC0yNiAtOCwtMzAgLTIsLTMwIiB0cmFuc2Zvcm09InJvdGF0ZSg2MCkiLz48cG9seWdvbiBwb2ludHM9IjAsLTM1IDIsLTMwIDgsLTMwIDMsLTI2IDUsLTIwIDAsLTI0IC01LC0yMCAtMywtMjYgLTgsLTMwIC0yLC0zMCIgdHJhbnNmb3JtPSJyb3RhdGUoOTApIi8+PHBvbHlnb24gcG9pbnRzPSIwLC0zNSAyLC0zMCA4LC0zMCAzLC0yNiA1LC0yMCAwLC0yNCAtNSwtMjAgLTMsLTI2IC04LC0zMCAtMiwtMzAiIHRyYW5zZm9ybT0icm90YXRlKDEyMCkiLz48cG9seWdvbiBwb2ludHM9IjAsLTM1IDIsLTMwIDgsLTMwIDMsLTI2IDUsLTIwIDAsLTI0IC01LC0yMCAtMywtMjYgLTgsLTMwIC0yLC0zMCIgdHJhbnNmb3JtPSJyb3RhdGUgxODApIi8+PHBvbHlnb24gcG9pbnRzPSIwLC0zNSAyLC0zMCA4LC0zMCAzLC0yNiA1LC0yMCAwLC0yNCAtNSwtMjAgLTMsLTI2IC04LC0zMCAtMiwtMzAiIHRyYW5zZm9ybT0icm90YXRlKDIxMCkiLz48cG9seWdvbiBwb2ludHM9IjAsLTM1IDIsLTMwIDgsLTMwIDMsLTI2IDUsLTIwIDAsLTI0IC01LC0yMCAtMywtMjYgLTgsLTMwIC0yLC0zMCIgdHJhbnNmb3JtPSJyb3RhdGUoMjQwKSIvPjxwb2x5Z29uIHBvaW50cz0iMCwtMzUgMiwtMzAgOCwtMzAgMywtMjYgNSwtMjAgMCwtMjQgLTUsLTIwIC0zLC0yNiAtOCwtMzAgLTIsLTMwIiB0cmFuc2Zvcm09InJvdGF0ZSgyNzApIi8+PHBvbHlnb24gcG9pbnRzPSIwLC0zNSAyLC0zMCA4LC0zMCAzLC0yNiA1LC0yMCAwLC0yNCAtNSwtMjAgLTMsLTI2IC04LC0zMCAtMiwtMzAiIHRyYW5zZm9ybT0icm90YXRlKDMwMCkiLz48cG9seWdvbiBwb2ludHM9IjAsLTM1IDIsLTMwIDgsLTMwIDMsLTI2IDUsLTIwIDAsLTI0IC01LC0yMCAtMywtMjYgLTgsLTMwIC0yLC0zMCIgdHJhbnNmb3JtPSJyb3RhdGUoMzMwKSIvPjwvZz48L2c+PC9zdmc+";
+      
+      const LOGO_RIGHT_DEFAULT = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48dGV4dCB4PSIxMCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iODAiIGZpbGw9ImJsYWNrIj5SRVBBPC90ZXh0Pjx0ZXh0IHg9IjEwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iNDUiIGZpbGw9ImJsYWNrIiBsZXR0ZXItc3BhY2luZz0iNSI+TUFSS0VUPC90ZXh0Pjwvc3ZnPg==";
 
       const initialLabel = {
         id: '1',
@@ -166,18 +166,10 @@
       const loadImage = (url) => {
         return new Promise((resolve, reject) => {
           const img = new Image();
-          // Only use anonymous crossOrigin for http/https to allow canvas export.
-          // For file:// or relative local paths, omitting it is often safer to avoid "Tainted Canvas" errors or loading blocks.
-          if (url.startsWith('http')) {
-            img.crossOrigin = "Anonymous";
-          }
           img.src = url;
+          img.crossOrigin = "Anonymous";
           img.onload = () => resolve(img);
-          img.onerror = (err) => {
-             console.error("Failed to load image for PDF:", url, err);
-             // Resolve with null so PDF generation continues without the image
-             resolve(null); 
-          };
+          img.onerror = (err) => reject(err);
         });
       };
 
@@ -198,30 +190,26 @@
         if (leftLogoImg) {
           const ratio = layout.logoHeight / leftLogoImg.height;
           const newW = leftLogoImg.width * ratio;
-          try {
-            doc.addImage(leftLogoImg, 'PNG', layout.logoMargin, layout.logoTopY, newW, layout.logoHeight);
-          } catch(e) { console.error("Error adding left logo to PDF", e); }
+          doc.addImage(leftLogoImg, 'PNG', layout.logoMargin, layout.logoTopY, newW, layout.logoHeight);
         } else {
-          doc.setFillColor(240, 240, 240);
+          doc.setFillColor(200, 200, 200);
           doc.rect(layout.logoMargin, layout.logoTopY, 45, layout.logoHeight, 'F');
-          doc.setFontSize(6);
-          doc.setTextColor(150);
-          doc.text("Img Missing", layout.logoMargin + 5, layout.logoTopY + 25);
+          doc.setFontSize(8);
+          doc.setTextColor(100);
+          doc.text("Logo L", layout.logoMargin + 5, layout.logoTopY + 25);
         }
 
         let rightLogoW = 45;
         if (rightLogoImg) {
           const ratio2 = layout.logoHeight / rightLogoImg.height;
           rightLogoW = rightLogoImg.width * ratio2;
-          try {
-            doc.addImage(rightLogoImg, 'PNG', layout.pageWidth - rightLogoW - layout.logoMargin, layout.logoTopY, rightLogoW, layout.logoHeight);
-          } catch(e) { console.error("Error adding right logo to PDF", e); }
+          doc.addImage(rightLogoImg, 'PNG', layout.pageWidth - rightLogoW - layout.logoMargin, layout.logoTopY, rightLogoW, layout.logoHeight);
         } else {
-          doc.setFillColor(240, 240, 240);
+          doc.setFillColor(200, 200, 200);
           doc.rect(layout.pageWidth - 45 - layout.logoMargin, layout.logoTopY, 45, layout.logoHeight, 'F');
-          doc.setFontSize(6);
-          doc.setTextColor(150);
-          doc.text("Img Missing", layout.pageWidth - 40, layout.logoTopY + 25);
+          doc.setFontSize(8);
+          doc.setTextColor(100);
+          doc.text("Logo R", layout.pageWidth - 40, layout.logoTopY + 25);
         }
 
         doc.setFont("Helvetica", "normal");
@@ -316,18 +304,6 @@
       // LabelPreview
       const LabelPreview = ({ data, settings, layout }) => {
         const barcodeRef = useRef(null);
-        
-        // Helper to handle image errors
-        const handleImgError = (e) => {
-           console.error("Image not found:", e.target.src);
-           e.target.style.display = "none";
-           // Try to show error text in parent if possible, or just log it
-           const parent = e.target.parentElement;
-           if(parent) {
-             parent.classList.add("bg-red-50", "border-red-200", "border");
-             parent.innerHTML = `<span class="text-[8px] text-red-500 text-center leading-tight p-1 block w-full break-all">Img Error<br/>${e.target.getAttribute('data-name') || 'File'}</span>`;
-           }
-        };
 
         useEffect(() => {
           if (data.BarcodeText && barcodeRef.current) {
@@ -374,13 +350,7 @@
                 }}
               >
                  {settings.logoLeft ? (
-                    <img 
-                      src={settings.logoLeft} 
-                      alt="Made in Europe" 
-                      data-name="Left"
-                      className="h-full w-auto object-contain" 
-                      onError={handleImgError}
-                    />
+                    <img src={settings.logoLeft} alt="Made in Europe" className="h-full w-auto object-contain" />
                  ) : (
                     <div className="h-full w-24 bg-gray-200 flex items-center justify-center text-[10px] text-gray-500">Logo L</div>
                  )}
@@ -398,13 +368,7 @@
                 }}
               >
                  {settings.logoRight ? (
-                    <img 
-                      src={settings.logoRight} 
-                      alt="Repa" 
-                      data-name="Right"
-                      className="h-full w-auto object-contain" 
-                      onError={handleImgError}
-                    />
+                    <img src={settings.logoRight} alt="Repa" className="h-full w-auto object-contain" />
                  ) : (
                     <div className="h-full w-12 bg-gray-200 flex items-center justify-center text-[10px] text-gray-500">Logo R</div>
                  )}
@@ -554,15 +518,6 @@
             reader.readAsDataURL(file);
           }
         };
-        
-        const handleImgError = (e) => {
-             e.target.style.display = "none";
-             const parent = e.target.parentElement;
-             if(parent) {
-                 parent.classList.add("bg-red-50");
-                 parent.innerHTML = `<span class="text-xs text-red-500">Image Not Found</span>`;
-             }
-        };
 
         return (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -577,8 +532,8 @@
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Left Logo (Made In Europe)</label>
                   <div className="flex items-center space-x-4">
-                    <div className="h-16 w-16 bg-gray-100 border rounded flex items-center justify-center overflow-hidden relative">
-                      {settings.logoLeft ? <img src={settings.logoLeft} onError={handleImgError} alt="Preview" className="h-full object-contain"/> : <span className="text-xs text-gray-400">Empty</span>}
+                    <div className="h-16 w-16 bg-gray-100 border rounded flex items-center justify-center overflow-hidden">
+                      {settings.logoLeft ? <img src={settings.logoLeft} alt="Preview" className="h-full object-contain"/> : <span className="text-xs text-gray-400">Empty</span>}
                     </div>
                     <label className="cursor-pointer bg-blue-50 text-blue-600 px-4 py-2 rounded text-sm font-medium hover:bg-blue-100 transition flex items-center">
                       <Upload size={16} className="mr-2" /> Replace
@@ -590,8 +545,8 @@
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Right Logo (Brand/Repa)</label>
                   <div className="flex items-center space-x-4">
-                    <div className="h-16 w-16 bg-gray-100 border rounded flex items-center justify-center overflow-hidden relative">
-                      {settings.logoRight ? <img src={settings.logoRight} onError={handleImgError} alt="Preview" className="h-full object-contain"/> : <span className="text-xs text-gray-400">Empty</span>}
+                    <div className="h-16 w-16 bg-gray-100 border rounded flex items-center justify-center overflow-hidden">
+                      {settings.logoRight ? <img src={settings.logoRight} alt="Preview" className="h-full object-contain"/> : <span className="text-xs text-gray-400">Empty</span>}
                     </div>
                     <label className="cursor-pointer bg-blue-50 text-blue-600 px-4 py-2 rounded text-sm font-medium hover:bg-blue-100 transition flex items-center">
                       <Upload size={16} className="mr-2" /> Replace
