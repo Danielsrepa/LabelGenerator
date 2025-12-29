@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
 import { LabelData, AppSettings, LayoutConfig } from '../types';
 
@@ -10,8 +10,6 @@ interface Props {
 
 const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
   const barcodeRef = useRef<SVGSVGElement>(null);
-  const [leftImgError, setLeftImgError] = useState(false);
-  const [rightImgError, setRightImgError] = useState(false);
 
   useEffect(() => {
     if (data.BarcodeText && barcodeRef.current) {
@@ -30,10 +28,6 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
     }
   }, [data.BarcodeText]);
 
-  // Reset error states when image settings change
-  useEffect(() => { setLeftImgError(false); }, [settings.logoLeft]);
-  useEffect(() => { setRightImgError(false); }, [settings.logoRight]);
-
   const PREVIEW_SCALE = 1.5; 
   const widthPx = layout.pageWidth * PREVIEW_SCALE;
   const heightPx = layout.pageHeight * PREVIEW_SCALE;
@@ -45,22 +39,14 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
     position: 'absolute' as const,
   };
 
-  const LogoPlaceholder = ({ text, error, url }: { text: string, error: boolean, url: string | null }) => {
-    const filename = url ? url.split('/').pop() : text;
-    return (
-      <div className="h-full px-2 bg-gray-100 flex flex-col items-center justify-center text-[7px] text-gray-400 border border-dashed leading-tight text-center min-w-[40px]">
-        <span className="font-bold">{error ? '404 NOT FOUND' : 'LOADING...'}</span>
-        <span className="opacity-70 mt-1">{filename}</span>
-      </div>
-    );
-  };
+  const emailToDisplay = data.Email || settings.email;
 
   return (
     <div 
       className="bg-white text-black shadow-lg relative overflow-hidden border border-gray-200 mx-auto box-border"
       style={{ width: widthPx, height: heightPx }}
     >
-      {/* Left Logo */}
+      {/* --- LOGOS --- */}
       <div 
         style={{ 
           ...textStyle,
@@ -71,20 +57,13 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
           alignItems: 'flex-start'
         }}
       >
-         {settings.logoLeft && !leftImgError ? (
-            <img 
-              src={settings.logoLeft} 
-              alt="Left Logo" 
-              className="h-full w-auto object-contain" 
-              onError={() => setLeftImgError(true)}
-              crossOrigin="anonymous"
-            />
+         {settings.logoLeft ? (
+            <img src={settings.logoLeft} alt="Made in Europe" className="h-full w-auto object-contain" />
          ) : (
-            <LogoPlaceholder text="logo-left.png" error={leftImgError} url={settings.logoLeft} />
+            <div className="h-full w-24 bg-gray-200 flex items-center justify-center text-[10px] text-gray-500">Logo L</div>
          )}
       </div>
 
-      {/* Right Logo */}
       <div 
         style={{ 
           ...textStyle,
@@ -96,16 +75,10 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
           alignItems: 'flex-end'
         }}
       >
-         {settings.logoRight && !rightImgError ? (
-            <img 
-              src={settings.logoRight} 
-              alt="Right Logo" 
-              className="h-full w-auto object-contain" 
-              onError={() => setRightImgError(true)}
-              crossOrigin="anonymous"
-            />
+         {settings.logoRight ? (
+            <img src={settings.logoRight} alt="Repa" className="h-full w-auto object-contain" />
          ) : (
-            <LogoPlaceholder text="logo-right.png" error={rightImgError} url={settings.logoRight} />
+            <div className="h-full w-12 bg-gray-200 flex items-center justify-center text-[10px] text-gray-500">Logo R</div>
          )}
       </div>
 
@@ -119,17 +92,17 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
           textAlign: 'right'
         }}
       >
-        order@repamarket.eu
+        {emailToDisplay}
       </div>
 
-      {/* Title */}
+      {/* --- CONTENT --- */}
       <div
         className="truncate"
         style={{
           ...textStyle,
           top: s(layout.titleTopY),
           left: s(layout.titleLeftMargin),
-          width: widthPx - s(layout.titleLeftMargin * 2),
+          width: widthPx - s(layout.titleLeftMargin * 2), 
           fontSize: s(layout.titleFontSize),
           fontWeight: 'bold',
         }}
@@ -137,7 +110,6 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
         {data.Title}
       </div>
 
-      {/* ColorLine */}
       {data.ColorLine && (
         <div
           className="truncate"
@@ -153,7 +125,6 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
         </div>
       )}
 
-      {/* Barcode */}
       {data.BarcodeText && (
         <div
           style={{
@@ -183,7 +154,7 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
         </div>
       )}
 
-      {/* Model */}
+      {/* --- FOOTER --- */}
       <div
         style={{
           ...textStyle,
@@ -196,7 +167,6 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
         {data.Model}
       </div>
 
-      {/* Sizes */}
       <div 
         className="pointer-events-none"
         style={{
@@ -237,6 +207,7 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
            </div>
          )}
       </div>
+
     </div>
   );
 };

@@ -24,6 +24,7 @@ export const parseExcelFile = async (file: File): Promise<LabelData[]> => {
           SizeInch: row.SizeInch ? String(row.SizeInch).trim() : '',
           SizeMM: row.SizeMM ? String(row.SizeMM).trim() : '',
           BarcodeText: row.BarcodeText ? String(row.BarcodeText).trim() : '',
+          Email: row.Email ? String(row.Email).trim() : '',
         }));
 
         resolve(mappedData);
