@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -11,25 +12,26 @@
       @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
       .animate-slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
     </style>
-    <script type="importmap">
+  <script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@0.292.0",
-    "jspdf": "https://esm.sh/jspdf@2.5.1",
-    "xlsx": "https://esm.sh/xlsx@0.18.5",
-    "jsbarcode": "https://esm.sh/jsbarcode@3.11.5",
-    "jszip": "https://esm.sh/jszip@3.10.1",
-    "react": "https://esm.sh/react@18.2.0",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "react/": "https://esm.sh/react@18.2.0/",
-    "react-dom/": "https://esm.sh/react-dom@18.2.0/"
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "jszip": "https://esm.sh/jszip@^3.10.1",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "xlsx": "https://esm.sh/xlsx@^0.18.5",
+    "jsbarcode": "https://esm.sh/jsbarcode@^3.12.1",
+    "jspdf": "https://esm.sh/jspdf@^3.0.4"
   }
 }
 </script>
-  </head>
+<link rel="stylesheet" href="/index.css">
+</head>
   <body class="bg-slate-100">
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
