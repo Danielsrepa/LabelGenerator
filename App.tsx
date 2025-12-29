@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { FileSpreadsheet, Download, Trash2, Plus, Settings as SettingsIcon, Printer, LayoutTemplate } from 'lucide-react';
 import { LabelData, AppSettings, LayoutConfig, DEFAULT_LAYOUT } from './types';
 import { parseExcelFile } from './services/excelService';
@@ -14,14 +14,13 @@ const resolveAssetPath = (path: string | null) => {
   if (!path) return null;
   if (path.startsWith('data:') || path.startsWith('http')) return path;
   
-  // Strip leading dot-slashes or slashes to ensure new URL(path, base) works correctly
   const cleanPath = path.replace(/^\.?\//, '');
   
   try {
-    // Resolve relative to the current directory of index.html
     const baseUrl = window.location.href.split('?')[0].split('#')[0];
     const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-    return new URL(cleanPath, baseDir).href;
+    const url = new URL(cleanPath, baseDir);
+    return url.href;
   } catch (e) {
     console.warn("Path resolution failed for:", path, e);
     return path;
@@ -47,12 +46,12 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLayoutOpen, setIsLayoutOpen] = useState(false);
   
-  const defaultSettings = useMemo(() => ({
+  // Initialize settings with resolved paths immediately using functional initialization
+  const [settings, setSettings] = useState<AppSettings>(() => ({
     logoLeft: resolveAssetPath(LOGO_LEFT_DEFAULT),
     logoRight: resolveAssetPath(LOGO_RIGHT_DEFAULT)
-  }), []);
+  }));
 
-  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [layout, setLayout] = useState<LayoutConfig>(DEFAULT_LAYOUT);
 
   const activeLabel = labels.find(l => l.id === selectedLabelId) || labels[0];
@@ -99,7 +98,7 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Printer className="text-indigo-600" />
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">LabelGen <span className="text-gray-400 font-normal text-sm ml-2">v2.1</span></h1>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight">LabelGen <span className="text-gray-400 font-normal text-sm ml-2">v2.2</span></h1>
           </div>
           <div className="flex items-center space-x-3">
              <button 
