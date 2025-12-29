@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import { LabelData, AppSettings, LayoutConfig } from '../types';
 
@@ -10,6 +10,8 @@ interface Props {
 
 const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
   const barcodeRef = useRef<SVGSVGElement>(null);
+  const [leftImgError, setLeftImgError] = useState(false);
+  const [rightImgError, setRightImgError] = useState(false);
 
   useEffect(() => {
     if (data.BarcodeText && barcodeRef.current) {
@@ -28,21 +30,29 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
     }
   }, [data.BarcodeText]);
 
-  // Visual scaling: PDF Points -> Screen Pixels
-  // 1pt = 1/72 inch. Screen is usually 96dpi. 1pt approx 1.33px.
-  // For a good preview size, let's scale it up.
+  // Reset error states when image settings change
+  useEffect(() => { setLeftImgError(false); }, [settings.logoLeft]);
+  useEffect(() => { setRightImgError(false); }, [settings.logoRight]);
+
   const PREVIEW_SCALE = 1.5; 
   const widthPx = layout.pageWidth * PREVIEW_SCALE;
   const heightPx = layout.pageHeight * PREVIEW_SCALE;
-
-  // Helper to scale values
   const s = (val: number) => val * PREVIEW_SCALE;
 
-  // Common text style to match PDF 'baseline: top' assumption as closely as possible
   const textStyle = {
     fontFamily: 'Helvetica, Arial, sans-serif',
     lineHeight: 1, 
     position: 'absolute' as const,
+  };
+
+  const LogoPlaceholder = ({ text, error, url }: { text: string, error: boolean, url: string | null }) => {
+    const filename = url ? url.split('/').pop() : text;
+    return (
+      <div className="h-full px-2 bg-gray-100 flex flex-col items-center justify-center text-[7px] text-gray-400 border border-dashed leading-tight text-center min-w-[40px]">
+        <span className="font-bold">{error ? '404 NOT FOUND' : 'LOADING...'}</span>
+        <span className="opacity-70 mt-1">{filename}</span>
+      </div>
+    );
   };
 
   return (
@@ -50,7 +60,6 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
       className="bg-white text-black shadow-lg relative overflow-hidden border border-gray-200 mx-auto box-border"
       style={{ width: widthPx, height: heightPx }}
     >
-      {/* --- LOGOS --- */}
       {/* Left Logo */}
       <div 
         style={{ 
@@ -62,10 +71,16 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
           alignItems: 'flex-start'
         }}
       >
-         {settings.logoLeft ? (
-            <img src={settings.logoLeft} alt="Made in Europe" className="h-full w-auto object-contain" />
+         {settings.logoLeft && !leftImgError ? (
+            <img 
+              src={settings.logoLeft} 
+              alt="Left Logo" 
+              className="h-full w-auto object-contain" 
+              onError={() => setLeftImgError(true)}
+              crossOrigin="anonymous"
+            />
          ) : (
-            <div className="h-full w-24 bg-gray-200 flex items-center justify-center text-[10px] text-gray-500">Logo L</div>
+            <LogoPlaceholder text="logo-left.png" error={leftImgError} url={settings.logoLeft} />
          )}
       </div>
 
@@ -81,10 +96,16 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
           alignItems: 'flex-end'
         }}
       >
-         {settings.logoRight ? (
-            <img src={settings.logoRight} alt="Repa" className="h-full w-auto object-contain" />
+         {settings.logoRight && !rightImgError ? (
+            <img 
+              src={settings.logoRight} 
+              alt="Right Logo" 
+              className="h-full w-auto object-contain" 
+              onError={() => setRightImgError(true)}
+              crossOrigin="anonymous"
+            />
          ) : (
-            <div className="h-full w-12 bg-gray-200 flex items-center justify-center text-[10px] text-gray-500">Logo R</div>
+            <LogoPlaceholder text="logo-right.png" error={rightImgError} url={settings.logoRight} />
          )}
       </div>
 
@@ -101,7 +122,6 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
         order@repamarket.eu
       </div>
 
-      {/* --- CONTENT --- */}
       {/* Title */}
       <div
         className="truncate"
@@ -109,7 +129,7 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
           ...textStyle,
           top: s(layout.titleTopY),
           left: s(layout.titleLeftMargin),
-          width: widthPx - s(layout.titleLeftMargin * 2), // constrain width
+          width: widthPx - s(layout.titleLeftMargin * 2),
           fontSize: s(layout.titleFontSize),
           fontWeight: 'bold',
         }}
@@ -149,7 +169,6 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
            <svg ref={barcodeRef} className="w-full h-full" preserveAspectRatio="none" />
         </div>
       )}
-      {/* Barcode Text */}
       {data.BarcodeText && (
         <div
            style={{
@@ -164,7 +183,6 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
         </div>
       )}
 
-      {/* --- FOOTER --- */}
       {/* Model */}
       <div
         style={{
@@ -219,7 +237,6 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
            </div>
          )}
       </div>
-
     </div>
   );
 };
