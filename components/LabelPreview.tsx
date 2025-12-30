@@ -28,10 +28,18 @@ const LabelPreview: React.FC<Props> = ({ data, settings, layout }) => {
     }
   }, [data.BarcodeText]);
 
-  const PREVIEW_SCALE = 1.5; 
-  const widthPx = layout.pageWidth * PREVIEW_SCALE;
-  const heightPx = layout.pageHeight * PREVIEW_SCALE;
-  const s = (val: number) => val * PREVIEW_SCALE;
+  const PT_TO_PX = 96 / 72;
+
+  // Keep the same *visual* size you had before:
+  // previously you used 1.5 while treating pt as px,
+  // so compensate by dividing by PT_TO_PX.
+  const PREVIEW_SCALE = 1.5 / PT_TO_PX;
+
+  const scale = PT_TO_PX * PREVIEW_SCALE;
+
+  const widthPx = layout.pageWidth * scale;
+  const heightPx = layout.pageHeight * scale;
+  const s = (val: number) => val * scale;
 
   const textStyle = {
     fontFamily: 'Helvetica, Arial, sans-serif',
