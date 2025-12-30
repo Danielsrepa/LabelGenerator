@@ -132,10 +132,12 @@ export const generatePDF = async (labels: LabelData[], settings: AppSettings, la
   };
 
   if (labels.length === 1) {
+      const orientation = layout.pageWidth > layout.pageHeight ? "landscape" : "portrait";
+
       const doc = new jsPDF({
-          orientation: 'portrait',
-          unit: 'pt',
-          format: [layout.pageWidth, layout.pageHeight]
+        orientation,
+        unit: "pt",
+        format: [layout.pageWidth, layout.pageHeight],
       });
       const label = labels[0];
       renderLabelToDoc(doc, label, layout, leftLogoImg, rightLogoImg, settings.email);
