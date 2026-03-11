@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileSpreadsheet, Download, Trash2, Plus, Settings as SettingsIcon, Printer, LayoutTemplate, Layers } from 'lucide-react';
-import { LabelData, AppSettings, LayoutConfig, DEFAULT_LAYOUT, PRESET_58X40, MM } from './types';
+import { LabelData, AppSettings, LayoutConfig, DEFAULT_LAYOUT, PRESET_58X40, PRESET_70X40, MM } from './types';
 import { parseExcelFile } from './services/excelService';
 import { generatePDF } from './services/pdfService';
 import LabelPreview from './components/LabelPreview';
@@ -52,11 +52,17 @@ const App: React.FC = () => {
   };
 
   const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    setPresetName(val);
-    if (val === 'Small') setLayout(PRESET_58X40);
-    else setLayout(DEFAULT_LAYOUT);
-  };
+  const val = e.target.value;
+  setPresetName(val);
+
+  if (val === 'Small') {
+    setLayout(PRESET_58X40);
+  } else if (val === 'Medium') {
+    setLayout(PRESET_70X40);
+  } else {
+    setLayout(DEFAULT_LAYOUT);
+  }
+};
 
   const updateLabel = (id: string, field: keyof LabelData, value: string) => {
     setLabels(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
@@ -87,13 +93,14 @@ const App: React.FC = () => {
             <div className="flex items-center bg-slate-50 border rounded-lg px-2">
               <Layers size={16} className="text-slate-400 mr-2" />
               <select 
-                className="bg-transparent py-1.5 text-sm font-medium focus:outline-none"
-                value={presetName}
-                onChange={handlePresetChange}
-              >
-                <option value="Standard">Standard (255pt)</option>
-                <option value="Small">Small (58x40mm)</option>
-              </select>
+  className="bg-transparent py-1.5 text-sm font-medium focus:outline-none"
+  value={presetName}
+  onChange={handlePresetChange}
+>
+  <option value="Standard">Standard (255pt)</option>
+  <option value="Medium">Medium (70x40mm)</option>
+  <option value="Small">Small (58x40mm)</option>
+</select>
             </div>
 
             <button 
