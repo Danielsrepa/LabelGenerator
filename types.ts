@@ -98,3 +98,30 @@ export const PRESET_58X40: LayoutConfig = {
   sizeFontSize: 7,
   sizeRightMargin: 3
 };
+
+export const PRESET_70X40: LayoutConfig = {
+  pageWidth: 70 * MM,
+  pageHeight: 40 * MM,
+  logoTopY: 3,
+  logoHeight: 20,
+  logoMargin: 3,
+  emailTopY: 26, 
+  emailFontSize: 4.8,
+  titleTopY: 32,
+  titleFontSize: 14,
+  titleLeftMargin: 3,
+  colorLineTopY: 46, 
+  colorLineFontSize: 6,
+  colorLineLeftMargin: 3,
+  barcodeTopY: 65,
+  barcodeHeight: 25,
+  barcodeWidth: 100,
+  barcodeTextFontSize: 4.3,
+  modelTopY: 96,
+  modelFontSize: 14,
+  modelLeftMargin: 3,
+  sizeInchTopY: 88,
+  sizeMmTopY: 98,
+  sizeFontSize: 7,
+  sizeRightMargin: 3
+};
